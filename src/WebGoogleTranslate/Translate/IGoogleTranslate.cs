@@ -1,4 +1,6 @@
-﻿namespace GoogleTranslate.Translate;
+﻿using WebGoogleTranslate.Translate.Models;
+
+namespace WebGoogleTranslate.Translate;
 
 /// <summary>
 /// Main interface for translating through Google Translate 
@@ -8,10 +10,5 @@ public interface IGoogleTranslate
     /// <summary>
     /// Translate
     /// </summary>
-    void Translate();
-
-    /// <summary>
-    /// Printing result
-    /// </summary>
-    void PrintResult();
+    TranslateResponse Translate(string text, bool isHtml);
 }

@@ -2,11 +2,10 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Web;
-using GoogleTranslate.Config;
+using GoogleTranslate.Translate;
 using Newtonsoft.Json;
-using Polly;
 
-namespace GoogleTranslate.Translate;
+namespace WebGoogleTranslate.Translate.Impl;
 
 /// <summary>
 /// Предложение

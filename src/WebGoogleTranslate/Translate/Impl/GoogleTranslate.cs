@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using GoogleTranslate.Translate;
 
-namespace WebGoogleTranslate.Translate;
+namespace WebGoogleTranslate.Translate.Impl;
 
 /// <summary>
 /// Translate files via google translate

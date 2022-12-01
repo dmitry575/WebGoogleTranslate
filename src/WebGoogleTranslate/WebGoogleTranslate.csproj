@@ -7,4 +7,16 @@
         <DockerDefaultTargetOS>Windows</DockerDefaultTargetOS>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="HtmlAgilityPack" Version="1.11.46" />
+      <PackageReference Include="log4net" Version="2.0.15" />
+      <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="6.1.0" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+      <PackageReference Include="Polly" Version="7.2.3" />
+      <PackageReference Include="Polly.Extensions.Http" Version="3.0.0" />
+      <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.4.0" />
+      <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.4.0" />
+    </ItemGroup>
+
 </Project>
