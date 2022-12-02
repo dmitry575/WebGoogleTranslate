@@ -5,5 +5,8 @@
 /// </summary>
 public class Configuration
 {
+    /// <summary>
+    /// Proxy server
+    /// </summary>
     public string Proxy { get; set; }
 }

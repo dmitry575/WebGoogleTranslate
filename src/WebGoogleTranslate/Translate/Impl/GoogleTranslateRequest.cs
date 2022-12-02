@@ -4,23 +4,36 @@ using System.Text;
 using System.Web;
 using GoogleTranslate.Translate;
 using Newtonsoft.Json;
+using Polly;
+using WebGoogleTranslate.Config;
 
 namespace WebGoogleTranslate.Translate.Impl;
 
 /// <summary>
-/// Предложение
+/// Sentence
 /// </summary>
 public class GooglesSentence
 {
-    [JsonProperty("trans")] public string Trans { get; set; }
-    [JsonProperty("orig")] public string Orig { get; set; }
-    [JsonProperty("backend")] public string Backend { get; set; }
+    [JsonProperty("trans")]
+    public string Trans { get; set; }
+
+    [JsonProperty("orig")]
+    public string Orig { get; set; }
+
+    [JsonProperty("backend")]
+    public string Backend { get; set; }
 }
 
+/// <summary>
+/// Google result of translate
+/// </summary>
 public class GoogleResult
 {
-    [JsonProperty("sentences")] public List<GooglesSentence> Sentenses { get; set; }
-    [JsonProperty("src")] public string Src { get; set; }
+    [JsonProperty("sentences")]
+    public List<GooglesSentence> Sentenses { get; set; }
+
+    [JsonProperty("src")]
+    public string Src { get; set; }
 }
 
 public class GoogleTranslateRequest : IGoogleTranslateRequest
@@ -39,13 +52,15 @@ public class GoogleTranslateRequest : IGoogleTranslateRequest
 
     public async Task<string> TranslateAsync(string text, string srcLang, string dstLang)
     {
-        string url = "https://translate.google.com/translate_a/single?client=at&dt=t&dt=ld&dt=qca&dt=rm&dt=bd&dj=1&hl=uk-RU&ie=UTF-8&oe=UTF-8&inputm=2&otf=2&iid=1dd3b944-fa62-4b55-b330-74909a99969e";
+        string url =
+            "https://translate.google.com/translate_a/single?client=at&dt=t&dt=ld&dt=qca&dt=rm&dt=bd&dj=1&hl=uk-RU&ie=UTF-8&oe=UTF-8&inputm=2&otf=2&iid=1dd3b944-fa62-4b55-b330-74909a99969e";
         if (string.IsNullOrEmpty(text))
         {
             return string.Empty;
         }
 
-        string query = $"sl={HttpUtility.UrlEncode(srcLang)}&tl={HttpUtility.UrlEncode(dstLang)}&q={HttpUtility.UrlEncode(text)}";
+        string query =
+            $"sl={HttpUtility.UrlEncode(srcLang)}&tl={HttpUtility.UrlEncode(dstLang)}&q={HttpUtility.UrlEncode(text)}";
 
         var response = await Policy.HandleResult<HttpResponseMessage>(x => x.StatusCode != HttpStatusCode.OK)
             .WaitAndRetryAsync(
@@ -80,7 +95,8 @@ public class GoogleTranslateRequest : IGoogleTranslateRequest
 
             if (result is { Sentenses: { Count: > 0 } })
             {
-                foreach (var sentence in result.Sentenses.Where(sentence => sentence != null && !string.IsNullOrEmpty(sentence.Trans)))
+                foreach (var sentence in result.Sentenses.Where(sentence =>
+                             sentence != null && !string.IsNullOrEmpty(sentence.Trans)))
                 {
                     if (string.IsNullOrEmpty(sentence.Trans))
                     {
@@ -129,8 +145,10 @@ public class GoogleTranslateRequest : IGoogleTranslateRequest
         }
 
         using var client = new HttpClient(httpClientHandler);
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded"));
-        client.DefaultRequestHeaders.Add("User-Agent", "AndroidTranslate/5.3.0.RC02.130475354-53000263 5.1 phone TRANSLATE_OPM5_TEST_1");
+        client.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/x-www-form-urlencoded"));
+        client.DefaultRequestHeaders.Add("User-Agent",
+            "AndroidTranslate/5.3.0.RC02.130475354-53000263 5.1 phone TRANSLATE_OPM5_TEST_1");
         client.DefaultRequestHeaders.Add("Accept-Language", "en_US");
 
         client.Timeout = TimeSpan.FromSeconds(300);

@@ -1,6 +1,6 @@
 ﻿using WebGoogleTranslate.Common.Models;
 
-namespace GoogleTranslate.Common;
+namespace WebGoogleTranslate.Common;
 
 /// <summary>
 /// Converting url for google translate

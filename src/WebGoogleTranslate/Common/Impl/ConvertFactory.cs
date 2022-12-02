@@ -1,7 +1,4 @@
-﻿using GoogleTranslate.Common;
-using GoogleTranslate.Common.Impl;
-
-namespace WebGoogleTranslate.Common.Impl;
+﻿namespace WebGoogleTranslate.Common.Impl;
 
 public class ConvertFactory : IConvertFactory
 {

@@ -1,14 +1,13 @@
 using System.Configuration;
-using GoogleTranslate.Common;
-using GoogleTranslate.Translate;
 using WebGoogleTranslate.Common;
 using WebGoogleTranslate.Common.Impl;
 using WebGoogleTranslate.Translate;
 
 var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
+
 builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddEnvironmentVariables("ASPNETCORE_");;
 
 builder.WebHost.UseKestrel(options => options.AddServerHeader = false);
 
@@ -24,26 +23,26 @@ builder.WebHost.ConfigureLogging((context, loggingBuilder) =>
     }
 });
 
+var configuration = builder.Configuration;
 
 builder.Services.AddScoped<IConvertFactory, ConvertFactory>();
 builder.Services.AddScoped<IGoogleTranslate, WebGoogleTranslate.Translate.Impl.GoogleTranslate>();
-builder.Services.Configure<Configuration>(_configuration.GetSection("RabbitMQConfiguration").Bind);
+builder.Services.Configure<Configuration>(configuration.GetSection("config").Bind);
+
+var app = builder.Build();
 app.UseSwagger();
 
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Todo Api v1");
-});
+app.UseSwaggerUI(c => { c.SwaggerEndpoint("/swagger/v1/swagger.json", "Todo Api v1"); });
 
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
 }
 
-app.MapPost("/translate", (string text, bool isHtml, IGoogleTranslate translate) =>
+app.MapPost("/translate", (string text, string fromLang, string toLang,  bool isHtml, bool convert, IGoogleTranslate translate) =>
 {
-    var result = translate.Translate();
-    Results.Ok();
+    var result = translate.Translate(text, fromLang, toLang, isHtml,convert);
+    Results.Ok(result);
 });
 
 app.Run();

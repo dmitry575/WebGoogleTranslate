@@ -1,5 +1,11 @@
-﻿using System.Text;
+﻿using System.Configuration;
+using System.Text;
+using GoogleTranslate.Common;
 using GoogleTranslate.Translate;
+using WebGoogleTranslate.Common;
+using WebGoogleTranslate.Common.Models;
+using WebGoogleTranslate.Extensions;
+using WebGoogleTranslate.Translate.Models;
 
 namespace WebGoogleTranslate.Translate.Impl;
 
@@ -23,7 +29,7 @@ public class GoogleTranslate : IGoogleTranslate
     /// </summary>
     private const int MaxLevel = 10;
 
-    private static readonly ILog _logger = LogManager.GetLogger(typeof(GoogleTranslate));
+    private readonly ILogger<GoogleTranslate> _logger;
 
     /// <summary>
     /// Configuration of translation
@@ -31,120 +37,53 @@ public class GoogleTranslate : IGoogleTranslate
     private readonly Configuration _config;
 
     /// <summary>
-    /// Helping for working with files
-    /// </summary>
-    private readonly IFile _files;
-
-    /// <summary>
     /// Helping for work with converting text, if it's html text or plan text
     /// </summary>
-    private readonly IConvert _convertor;
+    private readonly IConvertFactory _convertorFactory;
 
     /// <summary>
     /// Sending request to google translate
     /// </summary>
     private readonly IGoogleTranslateRequest _translate;
 
-    private int _bytes = 0;
-    private readonly Dictionary<string, int> _filesSuccess = new Dictionary<string, int>();
-    private readonly Dictionary<string, int> _filesFailed = new Dictionary<string, int>();
-
-    private readonly object _lockObj = new object();
-
-    public GoogleTranslate(Configuration config, IFile files, IConvertFactory convertFactory, IGoogleTranslateRequest translate)
+    public GoogleTranslate(Configuration config, IConvertFactory convertFactory, IGoogleTranslateRequest translate,
+        ILogger<GoogleTranslate> logger)
     {
         _config = config;
-        _files = files;
-        _convertor = convertFactory.Create(_config.IsHtml);
+        _convertorFactory = convertFactory;
         _translate = translate;
-
-        // checking thread configuration
-        if (_config.Threads <= 0 || _config.Threads > 20)
-        {
-            _config.Threads = 1;
-        }
+        _logger = logger;
     }
 
-    public void Translate()
+    public async Task<TranslateResponse> Translate(string text, string fromLang, string toLang, bool isHtml,
+        bool convert)
     {
-        var files = _files.GetFiles(_config.SrcPath, _config.MaskFiles);
+        var convertService = convert ? _convertorFactory.Create(isHtml) : null;
 
-        _logger.Info($"Reading files from {_config.SrcPath} {_config.MaskFiles}");
+        var translatedContent = await GetTranslateAsync(text, fromLang, toLang, convertService);
 
-        var tasks = new Task[Math.Min(_config.Threads, files.Count)];
-        var countThreads = 0;
-        var currentThread = 0;
-
-        foreach (var file in files)
-        {
-            if (countThreads >= tasks.Length)
-            {
-                currentThread = Task.WaitAny(tasks);
-                countThreads--;
-            }
-
-            tasks[currentThread++] = TranslateFileAsync(file);
-            countThreads++;
-        }
-
-        Task.WaitAll(tasks.Where(x => x != null).ToArray());
-
-        _logger.Info($"translated {_bytes} bytes");
+        return new TranslateResponse { Text = text, TextTranslated = translatedContent };
     }
 
-    private async Task TranslateFileAsync(string fileName)
-    {
-        using (LogicalThreadContext.Stacks["NDC"].Push($"Filename: {fileName}"))
-        {
-            try
-            {
-                _logger.Info($"starting translating file: {fileName}");
-
-                var content = _files.GetContent(fileName);
-                if (string.IsNullOrEmpty(content))
-                {
-                    _logger.Error($"file content is empty: {fileName}");
-                    return;
-                }
-
-
-                var convertResult = _convertor.Convert(content);
-
-                var contentTranslate = convertResult.Content;
-
-                var translatedContent = await GetTranslateAsync(contentTranslate, convertResult);
-
-                _files.SaveFiles(fileName, _config.GetDstPath(), _config.AdditionalExt, translatedContent);
-
-                _logger.Info($"translated file of {fileName} saved");
-
-                lock (_lockObj)
-                {
-                    _filesSuccess.Add(fileName, translatedContent.Length);
-                    _bytes += translatedContent.Length;
-                }
-            }
-            catch (Exception e)
-            {
-                _logger.Error($"translating file {fileName} failed, {e}");
-                lock (_lockObj)
-                {
-                    _filesFailed.Add(fileName, 1);
-                }
-            }
-        }
-    }
 
     /// <summary>
     /// Translating text
     /// </summary>
-    private async Task<string> GetTranslateAsync(string contentTranslate, ConvertResult convertResult, int maxChunkLength = MaxLengthChunk, int level = 1)
+    private async Task<string> GetTranslateAsync(string text, string fromLang, string toLang, IConvert convert,
+        int maxChunkLength = MaxLengthChunk, int level = 1)
     {
         var sb = new StringBuilder();
+        var contentTranslate = text;
+        ConvertResult convertResult = null;
+        if (convert != null)
+        {
+            convertResult = convert.Convert(text);
+            contentTranslate = convertResult.Content;
+        }
 
         foreach (var chunk in contentTranslate.GetChunks(maxChunkLength))
         {
-            var translateText = await _translate.TranslateAsync(chunk, _config.SrcLang, _config.DstLang);
+            var translateText = await _translate.TranslateAsync(chunk, fromLang, toLang);
             if (sb.Length > 0)
             {
                 sb.Append(' ');
@@ -153,53 +92,37 @@ public class GoogleTranslate : IGoogleTranslate
             sb.Append(translateText);
         }
 
-        string translatedContent;
-        try
+        var translatedContent = sb.ToString();
+        // if need unconvert data
+        if (convert != null)
         {
-            translatedContent = _convertor.UnConvert(sb.ToString(), convertResult.Groups, convertResult.Tags);
-        }
-        catch (ConvertException e)
-        {
-            _logger.Error($"get translated text failed, current max chunk: {maxChunkLength}, level:{level} : {e}");
-            if (level > MaxLevel)
+            try
             {
-                // throw exception to another handler of exception
-                _logger.Error($"get translated text failed, too many attempts");
+                translatedContent = convert.UnConvert(sb.ToString(), convertResult?.Groups, convertResult?.Tags);
+            }
+            catch (ConvertException e)
+            {
+                _logger.LogError(
+                    $"get translated text failed, current max chunk: {maxChunkLength}, level:{level} : {e}");
+                if (level > MaxLevel)
+                {
+                    // throw exception to another handler of exception
+                    _logger.LogError($"get translated text failed, too many attempts");
+                    throw;
+                }
+
+                return await GetTranslateAsync(contentTranslate, fromLang, toLang, convert,
+                    maxChunkLength / SplitTextTimes,
+                    level + 1);
+            }
+            catch (Exception)
+            {
+                _logger.LogError($"unconvert data failed: {contentTranslate}\r\n\r\ntranslate: {sb}\r\n\r\n");
                 throw;
             }
-
-            return await GetTranslateAsync(contentTranslate, convertResult, maxChunkLength / SplitTextTimes, level + 1);
         }
-        catch (Exception)
-        {
-            _logger.Error($"convertHtml: {contentTranslate}\r\n\r\ntranslate: {sb}\r\n\r\n");
-            throw;
-        }
+        _logger.LogError($"convertHtml: {contentTranslate}\r\n\r\ntranslate: {sb}\r\n\r\n");
 
         return translatedContent;
-    }
-
-    /// <summary>
-    /// Print result of translating files
-    /// </summary>
-    public void PrintResult()
-    {
-        var count = 0;
-        foreach (var success in _filesSuccess)
-        {
-            _logger.Info($"success: {success.Key} {success.Value} bytes");
-            count++;
-        }
-
-        _logger.Info($"Total success {count}");
-
-        count = 0;
-        foreach (var failed in _filesFailed)
-        {
-            _logger.Info($"failed: {failed.Key} {failed.Value} bytes");
-            count++;
-        }
-
-        _logger.Info($"Total failed {count}");
     }
 }

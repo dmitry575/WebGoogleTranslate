@@ -2,6 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using GoogleTranslate.Common;
+using HtmlAgilityPack;
 using WebGoogleTranslate.Common.Models;
 
 namespace WebGoogleTranslate.Common.Impl;
@@ -15,7 +16,9 @@ public class ConvertHtml : IConvert
     private const string GroupPrefixTag = "12";
     private readonly Regex _regexSpace = new Regex("[ ]{2,}", RegexOptions.None);
 
-    private readonly Regex _regexUrls = new Regex(@"(((http|ftp|https):\/\/)+[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&amp;:\/~\+#]*[\w\-\@?^=%&amp;\/~\+#])?)");
+    private readonly Regex _regexUrls =
+        new Regex(
+            @"(((http|ftp|https):\/\/)+[\w\-_]+(\.[\w\-_]+)+([\w\-\.,@?^=%&amp;:\/~\+#]*[\w\-\@?^=%&amp;\/~\+#])?)");
 
     private readonly Regex _regexHooks = new Regex(@"(\(|\)|#|~|\*|:|-|_|`)+");
 
@@ -241,13 +244,13 @@ public class ConvertHtml : IConvert
     /// <param name="index">Current index fro tags</param>
     private string Replaces(string content, Dictionary<int, string> htmlTags, int index)
     {
-        content = _regexUrls.Replace(content, delegate (Match m)
+        content = _regexUrls.Replace(content, delegate(Match m)
         {
             htmlTags.Add(++index, m.Value);
             return $" [{PrefixTag}{index}] ";
         });
 
-        content = _regexHooks.Replace(content, delegate (Match m)
+        content = _regexHooks.Replace(content, delegate(Match m)
         {
             htmlTags.Add(++index, m.Value);
             return $" [{PrefixTag}{index}] ";
@@ -323,6 +326,8 @@ public class ConvertHtml : IConvert
 
     private string GetUnGroup(string translate, Dictionary<int, string> tagsGroups)
     {
+        if (tagsGroups == null) return translate;
+
         var result = translate;
         foreach (var tagsGroup in tagsGroups)
         {

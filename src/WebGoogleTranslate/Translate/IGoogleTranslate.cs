@@ -10,5 +10,5 @@ public interface IGoogleTranslate
     /// <summary>
     /// Translate
     /// </summary>
-    TranslateResponse Translate(string text, bool isHtml);
+    Task<TranslateResponse> Translate(string text, string fromLang, string toLang, bool isHtml, bool convert);
 }

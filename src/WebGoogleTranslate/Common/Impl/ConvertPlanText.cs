@@ -1,10 +1,12 @@
 ﻿using System.Text.RegularExpressions;
 using GoogleTranslate.Common;
-using GoogleTranslate.Common.Impl;
 using WebGoogleTranslate.Common.Models;
 
 namespace WebGoogleTranslate.Common.Impl;
 
+/// <summary>
+/// Converting text symbols
+/// </summary>
 public sealed class ConvertPlanText : IConvert
 {
     private const string PrefixTag = "21";

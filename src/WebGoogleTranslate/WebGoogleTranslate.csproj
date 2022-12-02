@@ -2,9 +2,12 @@
 
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
-        <Nullable>enable</Nullable>
+        <Nullable>disable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
-        <DockerDefaultTargetOS>Windows</DockerDefaultTargetOS>
+        <Platforms>AnyCPU</Platforms>
+        <Configurations>Debug;Release</Configurations>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <LangVersion>default</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
