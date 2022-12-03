@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Web;
 using GoogleTranslate.Translate;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Polly;
 using WebGoogleTranslate.Config;
@@ -45,9 +46,9 @@ public class GoogleTranslateRequest : IGoogleTranslateRequest
     /// </summary>
     private const int RetryCount = 5;
 
-    public GoogleTranslateRequest(Configuration config)
+    public GoogleTranslateRequest(IOptions<Configuration> config)
     {
-        _config = config;
+        _config = config.Value;
     }
 
     public async Task<string> TranslateAsync(string text, string srcLang, string dstLang)
