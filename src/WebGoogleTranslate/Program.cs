@@ -50,10 +50,10 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.MapPost("/translate", (string text, string fromLang, string toLang,  bool isHtml, bool convert, IGoogleTranslate translate) =>
+app.MapPost("/translate", async (string text, string fromLang, string toLang,  bool isHtml, bool convert, IGoogleTranslate translate) =>
 {
-    var result = translate.Translate(text, fromLang, toLang, isHtml,convert);
-    Results.Ok(result);
+    var result = await translate.Translate(text, fromLang, toLang, isHtml,convert);
+    return Results.Ok(result);
 });
 
 app.Run();
