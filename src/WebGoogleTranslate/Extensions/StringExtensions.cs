@@ -18,6 +18,10 @@ public static class StringExtensions
         {
             return result;
         }
+        if (content.Length <= maxLength)
+        {
+            return new List<string> { content };
+        }
 
         int pos = 0;
         while (pos < content.Length)

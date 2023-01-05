@@ -1,10 +1,12 @@
 using GoogleTranslate.Translate;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using System.Configuration;
 using WebGoogleTranslate.Common;
 using WebGoogleTranslate.Common.Impl;
 using WebGoogleTranslate.Translate;
 using WebGoogleTranslate.Translate.Impl;
+using WebGoogleTranslate.Translate.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,9 +52,14 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 }
 
-app.MapPost("/translate", async (string text, string fromLang, string toLang,  bool isHtml, bool convert, IGoogleTranslate translate) =>
+app.MapPost("/translate", async ([FromBody] TranslateRequest translateReuqest, [FromServices] IGoogleTranslate translate) =>
 {
-    var result = await translate.Translate(text, fromLang, toLang, isHtml,convert);
+
+    var result = await translate.Translate(translateReuqest.Text,
+        translateReuqest.FromLang,
+        translateReuqest.ToLang,
+        translateReuqest.IsHtml,
+        translateReuqest.Convert);
     return Results.Ok(result);
 });
 

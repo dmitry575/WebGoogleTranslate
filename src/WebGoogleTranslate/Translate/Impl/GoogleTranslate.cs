@@ -1,6 +1,9 @@
 ﻿using System.Text;
+using GoogleTranslate.Common;
 using GoogleTranslate.Translate;
+using Microsoft.AspNetCore.Mvc;
 using WebGoogleTranslate.Common;
+using WebGoogleTranslate.Common.Models;
 using WebGoogleTranslate.Config;
 using WebGoogleTranslate.Extensions;
 using WebGoogleTranslate.Translate.Models;
@@ -39,14 +42,47 @@ public class GoogleTranslate : IGoogleTranslate
     public async Task<TranslateResponse> Translate(string text, string fromLang, string toLang, bool isHtml, bool convert)
     {
         var convertService = _convertFactory.Create(isHtml);
-        var convertResult = convertService.Convert(text);
+        var contentTranslate = text;
+        var convertResult = new ConvertResult();
 
-        var contentTranslate = convertResult.Content;
+        if (convert)
+        {
+            convertResult = convertService.Convert(text);
 
-        var translatedContent = await GetTranslateAsync(contentTranslate, fromLang, toLang);
+            contentTranslate = convertResult.Content;
+        }
+
+        var result = await Translate(contentTranslate, convertService, convertResult, fromLang, toLang, convert, Math.Min(contentTranslate.Length, MaxLengthChunk));
+        if (result != null)
+        {
+            result.Text = text;
+        }
+
+        return result;
+
+    }
+
+    private async Task<TranslateResponse> Translate(string contentTranslate, IConvert convertService, ConvertResult convertResult, string fromLang, string toLang, bool convert, int maxLengthChunk)
+    {
+        string translatedContent=string.Empty;
         try
         {
-            translatedContent = convertService.UnConvert(translatedContent, convertResult.Groups, convertResult.Tags);
+            translatedContent = await GetTranslateAsync(contentTranslate, fromLang, toLang, maxLengthChunk);
+
+            if (convert)
+            {
+                translatedContent = convertService.UnConvert(translatedContent, convertResult.Groups, convertResult.Tags);
+            }
+        }
+        catch (ConvertException)
+        {
+            _logger.LogError($"unconverting {contentTranslate}\r\n\r\ntranslate: {translatedContent}\r\n\r\n");
+            if (contentTranslate.Length > 128)
+            {
+                return await Translate(contentTranslate, convertService, convertResult, fromLang, toLang, convert, maxLengthChunk / 3);
+            }
+
+            throw;
         }
 
         catch (Exception)
@@ -57,21 +93,18 @@ public class GoogleTranslate : IGoogleTranslate
 
         return new TranslateResponse
         {
-            Text = text,
             TextTranslated = translatedContent
         };
-
     }
-
 
     /// <summary>
     /// Translating text
     /// </summary>
-    private async Task<string> GetTranslateAsync(string contentTranslate, string fromLang, string toLang)
+    private async Task<string> GetTranslateAsync(string contentTranslate, string fromLang, string toLang, int maxLengthChunk)
     {
         var sb = new StringBuilder();
 
-        foreach (var chunk in contentTranslate.GetChunks(MaxLengthChunk))
+        foreach (var chunk in contentTranslate.GetChunks(maxLengthChunk))
         {
             var translateText = await _translate.TranslateAsync(chunk, fromLang, toLang);
             if (sb.Length > 0)
