@@ -20,6 +20,11 @@ public class GoogleTranslate : IGoogleTranslate
     /// </summary>
     private const int MaxLengthChunk = 2000;
 
+    /// <summary>
+    /// Min text for transalting
+    /// </summary>
+    private const int MinLengthText = 64;
+
     private readonly ILogger<GoogleTranslate> _logger;
 
     /// <summary>
@@ -64,7 +69,7 @@ public class GoogleTranslate : IGoogleTranslate
 
     private async Task<TranslateResponse> Translate(string contentTranslate, IConvert convertService, ConvertResult convertResult, string fromLang, string toLang, bool convert, int maxLengthChunk)
     {
-        string translatedContent=string.Empty;
+        string translatedContent = string.Empty;
         try
         {
             translatedContent = await GetTranslateAsync(contentTranslate, fromLang, toLang, maxLengthChunk);
@@ -77,7 +82,7 @@ public class GoogleTranslate : IGoogleTranslate
         catch (ConvertException)
         {
             _logger.LogError($"unconverting {contentTranslate}\r\n\r\ntranslate: {translatedContent}\r\n\r\n");
-            if (contentTranslate.Length > 128)
+            if (maxLengthChunk > MinLengthText)
             {
                 return await Translate(contentTranslate, convertService, convertResult, fromLang, toLang, convert, maxLengthChunk / 3);
             }
