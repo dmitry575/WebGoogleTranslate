@@ -70,6 +70,10 @@ public class GoogleTranslate : IGoogleTranslate
     private async Task<TranslateResponse> Translate(string contentTranslate, IConvert convertService, ConvertResult convertResult, string fromLang, string toLang, bool convert, int maxLengthChunk)
     {
         string translatedContent = string.Empty;
+        if (maxLengthChunk < MinLengthText)
+        {
+            maxLengthChunk = MinLengthText - 1;
+        }
         try
         {
             translatedContent = await GetTranslateAsync(contentTranslate, fromLang, toLang, maxLengthChunk);

@@ -35,12 +35,16 @@ public static class StringExtensions
 
             // send end of text
             int end = pos + maxLength;
+            if (end >= content.Length)
+            {
+                end = content.Length-1;
+            }
             for (; end > pos; end--)
             {
                 if (Delimitary.IndexOf(content[end]) > -1)
                 {
                     // if before space
-                    if (end != (pos + maxLength) && content[end + 1] == ' ')
+                    if (end < content.Length-1 && end != (pos + maxLength) && content[end + 1] == ' ')
                     {
                         break;
                     }
@@ -51,6 +55,10 @@ public static class StringExtensions
             if (pos == end)
             {
                 end = pos + maxLength;
+                if (end >= content.Length)
+                {
+                    end = content.Length - 1;
+                }
                 for (; end > pos; end--)
                 {
                     if (content[end] == ' ')
@@ -62,8 +70,13 @@ public static class StringExtensions
             {
                 end = pos + maxLength;
             }
-
-            result.Add(content.Substring(pos, end - pos + 1));
+            var endIndex = end - pos + 1;
+            // chec kend of string 
+            if(pos + endIndex >= content.Length) 
+            {
+                endIndex = content.Length - pos;
+            }
+            result.Add(content.Substring(pos, endIndex));
             pos = end + 1;
         }
 

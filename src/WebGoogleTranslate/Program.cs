@@ -1,9 +1,8 @@
-using GoogleTranslate.Translate;
+﻿using GoogleTranslate.Translate;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using System.Configuration;
 using WebGoogleTranslate.Common;
 using WebGoogleTranslate.Common.Impl;
+using WebGoogleTranslate.Extensions;
 using WebGoogleTranslate.Translate;
 using WebGoogleTranslate.Translate.Impl;
 using WebGoogleTranslate.Translate.Models;
